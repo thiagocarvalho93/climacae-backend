@@ -4,6 +4,8 @@ using Climacae.Api.Repositories;
 using Climacae.Api.Repositories.Interfaces;
 using Climacae.Api.Services;
 using Climacae.Api.Services.Interfaces;
+using Hangfire;
+using Hangfire.PostgreSql;
 using Microsoft.EntityFrameworkCore;
 
 namespace Climacae.Api.Extensions;
@@ -35,6 +37,16 @@ public static class Configuration
         });
 
         builder.Services.AddOutputCache();
+        builder.Services.AddHangfire(config =>
+        {
+            config
+                .UsePostgreSqlStorage(c => c.UseNpgsqlConnection(builder.Configuration.GetConnectionString("DefaultConnection")))
+                .SetDataCompatibilityLevel(CompatibilityLevel.Version_180)
+                .UseSimpleAssemblyNameTypeSerializer()
+                .UseRecommendedSerializerSettings();
+        });
+
+        builder.Services.AddHangfireServer();
 
         builder.Services.AddScoped<IObservationService, ObservationService>();
         builder.Services.AddScoped<IObservationRepository, ObservationRepository>();
@@ -46,7 +58,9 @@ public static class Configuration
         app.UseCors();
         app.UseSwagger();
         app.UseSwaggerUI();
+        app.UseHangfireDashboard();
 
+        app.MapHangfireDashboard();
         app.RegisterObservationEndpoints();
     }
 }
