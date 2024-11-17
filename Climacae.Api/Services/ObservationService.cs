@@ -57,7 +57,7 @@ public class ObservationService(IWeatherHttpClient weatherHttpClient, IObservati
         }
 
         var notIncludedObservations = observations
-            .Where(x => DateTime.Parse(x.ObsTimeLocal) > initialDate)
+            .Where(x => x.ObsTimeLocal is not null && DateTime.Parse(x.ObsTimeLocal) > initialDate)
             .ToList();
 
         var models = ObservationParser.Parse(notIncludedObservations);

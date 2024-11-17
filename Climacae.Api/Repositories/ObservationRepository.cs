@@ -53,7 +53,7 @@ public class ObservationRepository(ObservationDbContext context) : IObservationR
             .GroupBy(p => p.StationId)
             .Select(g => new StationStatisticDTO()
             {
-                StationId = g.Key,
+                StationId = g.Key ?? "-",
                 MaxPrecipitation = g.Max(x => x.PrecipitationRate),
                 MaxTemp = g.Max(x => x.TempHigh),
                 MaxWind = g.Max(x => x.WindGustHigh),
