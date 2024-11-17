@@ -1,4 +1,5 @@
 using System.Text.Json;
+using System.Text.Json.Serialization;
 using Climacae.Api.DTOs;
 using Climacae.Api.Repositories.Interfaces;
 
@@ -7,7 +8,11 @@ namespace Climacae.Api.Repositories;
 public class WeatherApiClient(HttpClient httpClient) : IWeatherHttpClient
 {
     private readonly HttpClient _httpClient = httpClient;
-    private readonly JsonSerializerOptions jsonOptions = new() { PropertyNameCaseInsensitive = true };
+    private readonly JsonSerializerOptions jsonOptions = new()
+    {
+        PropertyNameCaseInsensitive = true,
+        DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull,
+    };
 
     public async Task<WeatherApiResponseDTO?> FetchHistoricalWeatherDataAsync(string stationId, string date)
     {
@@ -21,13 +26,13 @@ public class WeatherApiClient(HttpClient httpClient) : IWeatherHttpClient
         }
 
         var jsonResponse = await response.Content.ReadAsStringAsync();
-        var weatherData = JsonSerializer.Deserialize<WeatherApiResponseDTO>(jsonResponse, jsonOptions);
-
-        if (weatherData == null)
-        {
-            throw new Exception("Error deserializing historical weather data.");
-        }
+        var weatherData = string.IsNullOrEmpty(jsonResponse) ? null : ParseJson(jsonResponse);
 
         return weatherData;
+    }
+
+    private WeatherApiResponseDTO? ParseJson(string jsonResponse)
+    {
+        return JsonSerializer.Deserialize<WeatherApiResponseDTO>(jsonResponse, jsonOptions);
     }
 }

@@ -1,4 +1,5 @@
 using Climacae.Api.Data;
+using Climacae.Api.DTOs;
 using Climacae.Api.Models;
 using Climacae.Api.Repositories.Interfaces;
 using Microsoft.EntityFrameworkCore;
@@ -34,6 +35,32 @@ public class ObservationRepository(ObservationDbContext context) : IObservationR
         return await context.Observations
             .AsNoTrackingWithIdentityResolution()
             .FirstOrDefaultAsync(x => x.StationId == stationId && x.ObsTimeLocal == dateTime, token);
+    }
+
+    public async Task<string[]> GetStations(CancellationToken token = default)
+    {
+        return await context.Observations
+            .AsNoTrackingWithIdentityResolution()
+            .Select(x => x.StationId ?? string.Empty)
+            .Distinct()
+            .ToArrayAsync(token);
+    }
+
+    public async Task<IEnumerable<StationStatisticDTO>> GetStatistics(DateTime initialDate, DateTime finalDate, CancellationToken token = default)
+    {
+        return await context.Observations
+            .Where(x => x.ObsTimeLocal >= initialDate && x.ObsTimeLocal <= finalDate)
+            .GroupBy(p => p.StationId)
+            .Select(g => new StationStatisticDTO()
+            {
+                StationId = g.Key,
+                MaxPrecipitation = g.Max(x => x.PrecipitationRate),
+                MaxTemp = g.Max(x => x.TempHigh),
+                MaxWind = g.Max(x => x.WindGustHigh),
+                MinTemp = g.Min(x => x.TempLow),
+                TotalPrecipitation = g.Max(x => x.PrecipitationTotal)
+            })
+            .ToListAsync(token);
     }
 
     public async Task Insert(ObservationModel observation, CancellationToken token = default)

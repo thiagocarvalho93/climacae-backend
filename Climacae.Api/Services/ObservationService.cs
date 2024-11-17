@@ -67,6 +67,26 @@ public class ObservationService(IWeatherHttpClient weatherHttpClient, IObservati
         return true;
     }
 
+    public async Task<StatisticResponseDTO?> GetStatistics(DateTime initialDate, DateTime finalDate, CancellationToken token = default)
+    {
+        var stationStatistics = await repository.GetStatistics(initialDate, finalDate, token);
+
+        return new()
+        {
+            Stations = stationStatistics.ToList(),
+            MaxPrecipitation = stationStatistics.Max(g => g.MaxPrecipitation),
+            MaxTemp = stationStatistics.Max(g => g.MaxTemp),
+            MinTemp = stationStatistics.Min(g => g.MinTemp),
+            MaxWind = stationStatistics.Max(g => g.MaxWind),
+            TotalPrecipitation = stationStatistics.Max(g => g.TotalPrecipitation)
+        };
+    }
+
+    public async Task<string[]> GetStations(CancellationToken token = default)
+    {
+        return await repository.GetStations(token);
+    }
+
     private static List<DateTime> GetDateTimeListSince(DateTime initialDate)
     {
         List<DateTime> allDates = [];
