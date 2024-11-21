@@ -33,11 +33,16 @@ public class ObservationService(IWeatherHttpClient weatherHttpClient, IObservati
 
     public async Task<bool> Import(string stationId, DateTime initialDate, CancellationToken token = default)
     {
-        var existingObservations = (await Get(stationId, initialDate, DateTime.Now.AddDays(1).Date, token)).ToList();
+        var existingObservations = (await Get(stationId, initialDate.Date, DateTime.Now.AddDays(1).Date, token)).ToList();
 
         if (existingObservations.Count != 0)
         {
-            var mostRecentDateString = existingObservations.OrderByDescending(x => DateTime.Parse(x.ObsTimeLocal)).FirstOrDefault()?.ObsTimeLocal;
+            var mostRecentDateString = existingObservations
+                .Where(x => x.ObsTimeLocal is not null)
+                .OrderByDescending(x => DateTime.Parse(x.ObsTimeLocal!))
+                .FirstOrDefault()?
+                .ObsTimeLocal;
+
             initialDate = mostRecentDateString is null ? initialDate : DateTime.Parse(mostRecentDateString);
         }
 
@@ -57,7 +62,9 @@ public class ObservationService(IWeatherHttpClient weatherHttpClient, IObservati
         }
 
         var notIncludedObservations = observations
-            .Where(x => x.ObsTimeLocal is not null && DateTime.Parse(x.ObsTimeLocal) > initialDate)
+            .Where(x => x.ObsTimeLocal is not null &&
+                !existingObservations
+                    .Any(ex => DateTime.Parse(ex.ObsTimeLocal!) == DateTime.Parse(x.ObsTimeLocal)))
             .ToList();
 
         var models = ObservationParser.Parse(notIncludedObservations);
