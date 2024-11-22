@@ -2,6 +2,7 @@ using Climacae.Api.DTOs;
 using Climacae.Api.Parsers;
 using Climacae.Api.Repositories.Interfaces;
 using Climacae.Api.Services.Interfaces;
+using Hangfire.Storage.Monitoring;
 
 namespace Climacae.Api.Services;
 
@@ -78,14 +79,20 @@ public class ObservationService(IWeatherHttpClient weatherHttpClient, IObservati
     {
         var stationStatistics = await repository.GetStatistics(initialDate, finalDate, token);
 
+        var maxPrecip = stationStatistics.OrderByDescending(g => g.MaxPrecipitation).First();
+        var maxTemp = stationStatistics.OrderByDescending(g => g.MaxTemp).First();
+        var minTemp = stationStatistics.OrderBy(g => g.MinTemp).First();
+        var maxWind = stationStatistics.OrderByDescending(g => g.MaxWind).First();
+        var totalPrecip = stationStatistics.OrderByDescending(g => g.TotalPrecipitation).First();
+
         return new()
         {
             Stations = stationStatistics.ToList(),
-            MaxPrecipitation = stationStatistics.Max(g => g.MaxPrecipitation),
-            MaxTemp = stationStatistics.Max(g => g.MaxTemp),
-            MinTemp = stationStatistics.Min(g => g.MinTemp),
-            MaxWind = stationStatistics.Max(g => g.MaxWind),
-            TotalPrecipitation = stationStatistics.Max(g => g.TotalPrecipitation)
+            MaxPrecipitation = new StatisticDTO(maxPrecip.MaxPrecipitation, maxPrecip.StationId, maxPrecip.MaxPrecipitationTime),
+            MaxTemp = new StatisticDTO(maxTemp.MaxTemp, maxTemp.StationId, maxTemp.MaxTempTime),
+            MinTemp = new StatisticDTO(minTemp.MinTemp, minTemp.StationId, minTemp.MinTempTime),
+            MaxWind = new StatisticDTO(maxWind.MaxWind, maxWind.StationId, maxWind.MaxWindTime),
+            TotalPrecipitation = new StatisticDTO(totalPrecip.TotalPrecipitation, totalPrecip.StationId, totalPrecip.TotalPrecipitationTime),
         };
     }
 

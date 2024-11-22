@@ -55,10 +55,30 @@ public class ObservationRepository(ObservationDbContext context) : IObservationR
             {
                 StationId = g.Key ?? "-",
                 MaxPrecipitation = g.Max(x => x.PrecipitationRate),
+                MaxPrecipitationTime = g
+                    .Where(x => x.PrecipitationRate == g.Max(y => y.PrecipitationRate))
+                    .Select(x => x.ObsTimeLocal)
+                    .FirstOrDefault(),
                 MaxTemp = g.Max(x => x.TempHigh),
+                MaxTempTime = g
+                    .Where(x => x.TempHigh == g.Max(y => y.TempHigh))
+                    .Select(x => x.ObsTimeLocal)
+                    .FirstOrDefault(),
                 MaxWind = g.Max(x => x.WindGustHigh),
-                MinTemp = g.Min(x => x.TempLow),
-                TotalPrecipitation = g.Max(x => x.PrecipitationTotal)
+                MaxWindTime = g
+                    .Where(x => x.WindGustHigh == g.Max(y => y.WindGustHigh))
+                    .Select(x => x.ObsTimeLocal)
+                    .FirstOrDefault(),
+                MinTemp = g.Where(x => x.TempLow != 0).Min(x => x.TempLow),
+                MinTempTime = g
+                    .Where(x => x.TempLow == g.Min(y => y.TempLow))
+                    .Select(x => x.ObsTimeLocal)
+                    .FirstOrDefault(),
+                TotalPrecipitation = g.Max(x => x.PrecipitationTotal),
+                TotalPrecipitationTime = g
+                    .Where(x => x.PrecipitationTotal == g.Max(y => y.PrecipitationTotal))
+                    .Select(x => x.ObsTimeLocal)
+                    .FirstOrDefault(),
             })
             .ToListAsync(token);
     }
