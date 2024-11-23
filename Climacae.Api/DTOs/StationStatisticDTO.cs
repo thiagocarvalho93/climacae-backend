@@ -3,6 +3,7 @@ namespace Climacae.Api.DTOs;
 public class StationStatisticDTO
 {
     public string StationId { get; set; }
+    public DateTime Date { get; set; }
     public double MaxTemp { get; set; }
     public DateTime MaxTempTime { get; set; }
     public double MinTemp { get; set; }

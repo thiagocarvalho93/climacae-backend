@@ -10,6 +10,7 @@ public interface IObservationRepository
     Task<ObservationModel?> Get(string stationId, DateTime dateTime, CancellationToken token = default);
     Task<IEnumerable<ObservationModel>> Get(string stationId, DateTime initialDate, DateTime finalDate, CancellationToken token = default);
     Task<IEnumerable<StationStatisticDTO>> GetStatistics(DateTime initialDate, DateTime finalDate, CancellationToken token = default);
+    Task<IEnumerable<StationStatisticDTO>> GetDailyStatistics(DateTime day, CancellationToken token = default);
     Task Insert(ObservationModel observation, CancellationToken token = default);
     Task Insert(List<ObservationModel> observations, CancellationToken token = default);
     Task<bool> Update(ObservationModel observation, CancellationToken token = default);

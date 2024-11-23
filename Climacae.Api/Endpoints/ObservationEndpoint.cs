@@ -34,7 +34,7 @@ public static class ObservationEndpoint
         observations.MapGet("statistics/today", async ([FromServices] IObservationService service, CancellationToken token) =>
         {
             var initialDate = DateTime.Now.Date;
-            var observations = await service.GetStatistics(initialDate.Date, initialDate.AddDays(1).Date, token);
+            var observations = await service.GetDailyStatistics(initialDate.Date, token);
 
             return Results.Ok(observations);
         });

@@ -6,7 +6,7 @@ using Microsoft.EntityFrameworkCore;
 
 namespace Climacae.Api.Repositories;
 
-public class ObservationRepository(ObservationDbContext context) : IObservationRepository
+public class ObservationEFRepository(ObservationDbContext context) : IObservationRepository
 {
     public Task<bool> Delete(string stationId, CancellationToken token = default)
     {
@@ -37,6 +37,11 @@ public class ObservationRepository(ObservationDbContext context) : IObservationR
             .FirstOrDefaultAsync(x => x.StationId == stationId && x.ObsTimeLocal == dateTime, token);
     }
 
+    public Task<IEnumerable<StationStatisticDTO>> GetDailyStatistics(DateTime day, CancellationToken token = default)
+    {
+        throw new NotImplementedException();
+    }
+
     public async Task<string[]> GetStations(CancellationToken token = default)
     {
         return await context.Observations
@@ -49,6 +54,7 @@ public class ObservationRepository(ObservationDbContext context) : IObservationR
     public async Task<IEnumerable<StationStatisticDTO>> GetStatistics(DateTime initialDate, DateTime finalDate, CancellationToken token = default)
     {
         return await context.Observations
+            .AsSplitQuery()
             .Where(x => x.ObsTimeLocal >= initialDate && x.ObsTimeLocal <= finalDate)
             .GroupBy(p => p.StationId)
             .Select(g => new StationStatisticDTO()

@@ -48,8 +48,10 @@ public static class Configuration
 
         builder.Services.AddHangfireServer();
 
+        var dapperConnection = builder.Configuration.GetConnectionString("TimescaleDb");
+
         builder.Services.AddScoped<IObservationService, ObservationService>();
-        builder.Services.AddScoped<IObservationRepository, ObservationRepository>();
+        builder.Services.AddScoped<IObservationRepository, ObservationDapperRepository>(x => new(dapperConnection));
         builder.Services.AddHttpClient<IWeatherHttpClient, WeatherApiClient>();
     }
 

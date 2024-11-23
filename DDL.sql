@@ -1,0 +1,42 @@
+CREATE TABLE IF NOT EXISTS Observations (
+    StationId TEXT,
+    ObsTimeLocal TIMESTAMP NOT NULL,
+    ObsTimeUtc TIMESTAMP NOT NULL,
+    Epoch BIGINT NOT NULL,
+    Latitude DOUBLE PRECISION NOT NULL,
+    Longitude DOUBLE PRECISION NOT NULL,
+    SolarRadiationHigh DOUBLE PRECISION NOT NULL,
+    UvHigh DOUBLE PRECISION NOT NULL,
+    WindDirectionAvg DOUBLE PRECISION NOT NULL,
+    HumidityHigh DOUBLE PRECISION NOT NULL,
+    HumidityLow DOUBLE PRECISION NOT NULL,
+    HumidityAvg DOUBLE PRECISION NOT NULL,
+    QualityControlStatus INT NOT NULL,
+    TempHigh DOUBLE PRECISION NOT NULL,
+    TempLow DOUBLE PRECISION NOT NULL,
+    TempAvg DOUBLE PRECISION NOT NULL,
+    WindspeedHigh DOUBLE PRECISION NOT NULL,
+    WindspeedLow DOUBLE PRECISION NOT NULL,
+    WindspeedAvg DOUBLE PRECISION NOT NULL,
+    WindGustHigh DOUBLE PRECISION NOT NULL,
+    WindGustLow DOUBLE PRECISION NOT NULL,
+    WindGustAvg DOUBLE PRECISION NOT NULL,
+    DewPointHigh DOUBLE PRECISION NOT NULL,
+    DewPointLow DOUBLE PRECISION NOT NULL,
+    DewPointAvg DOUBLE PRECISION NOT NULL,
+    WindChillHigh DOUBLE PRECISION NOT NULL,
+    WindChillLow DOUBLE PRECISION NOT NULL,
+    WindChillAvg DOUBLE PRECISION NOT NULL,
+    HeatIndexHigh DOUBLE PRECISION NOT NULL,
+    HeatIndexLow DOUBLE PRECISION NOT NULL,
+    HeatIndexAvg DOUBLE PRECISION NOT NULL,
+    PressureMax DOUBLE PRECISION NOT NULL,
+    PressureMin DOUBLE PRECISION NOT NULL,
+    PressureTrend DOUBLE PRECISION NOT NULL,
+    PrecipitationRate DOUBLE PRECISION NOT NULL,
+    PrecipitationTotal DOUBLE PRECISION NOT NULL
+);
+
+CREATE INDEX ix_stationid_obstimelocal ON observations (stationid, obstimelocal DESC);
+
+SELECT create_hypertable('observations', 'obstimelocal');
