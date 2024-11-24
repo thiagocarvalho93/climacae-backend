@@ -13,4 +13,5 @@ public interface IObservationService
     Task<StatisticResponseDTO?> GetWeekStatistics(DateTime initialDate, CancellationToken token = default);
     Task<StatisticResponseDTO?> GetStatistics(DateTime initialDate, DateTime finalDate, CancellationToken token = default);
     Task<bool> Import(string stationId, DateTime initialDate, CancellationToken token = default);
+    Task<bool> ImportCurrentDay(string stationId, CancellationToken token = default);
 }

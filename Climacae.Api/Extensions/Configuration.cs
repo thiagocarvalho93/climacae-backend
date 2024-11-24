@@ -52,7 +52,7 @@ public static class Configuration
 
         builder.Services.AddScoped<IObservationService, ObservationService>();
         builder.Services.AddScoped<IObservationRepository, ObservationDapperRepository>(x => new(dapperConnection));
-        builder.Services.AddHttpClient<IWeatherHttpClient, WeatherApiClient>();
+        builder.Services.AddHttpClient<IWeatherHttpClient, WeatherHttpClient>();
     }
 
     public static void RegisterMiddlewares(this WebApplication app)

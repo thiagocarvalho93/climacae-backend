@@ -7,13 +7,11 @@ public class UpdateTodayDataJob(IObservationService observationService, ILogger<
 {
     public async Task Execute()
     {
-        var today = DateTime.Now;
-
         logger.LogInformation("Updating data...");
 
         foreach (var station in StationConstants.StationList)
         {
-            await observationService.Import(station, today);
+            await observationService.ImportCurrentDay(station);
         }
 
         logger.LogInformation("Data updated! {date}", DateTime.Now.ToString());

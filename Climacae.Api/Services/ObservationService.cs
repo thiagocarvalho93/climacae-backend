@@ -2,7 +2,6 @@ using Climacae.Api.DTOs;
 using Climacae.Api.Parsers;
 using Climacae.Api.Repositories.Interfaces;
 using Climacae.Api.Services.Interfaces;
-using Hangfire.Storage.Monitoring;
 
 namespace Climacae.Api.Services;
 
@@ -62,11 +61,33 @@ public class ObservationService(IWeatherHttpClient weatherHttpClient, IObservati
             }
         }
 
-        var notIncludedObservations = observations
-            .Where(x => x.ObsTimeLocal is not null &&
-                !existingObservations
-                    .Any(ex => DateTime.Parse(ex.ObsTimeLocal!) == DateTime.Parse(x.ObsTimeLocal)))
-            .ToList();
+        var notIncludedObservations = GetNotIncludedObservations(existingObservations, observations);
+
+        if (notIncludedObservations.Count == 0)
+            return false;
+
+        var models = ObservationParser.Parse(notIncludedObservations);
+
+        await repository.Insert(models, token);
+
+        return true;
+    }
+
+    public async Task<bool> ImportCurrentDay(string stationId, CancellationToken token = default)
+    {
+        var today = DateTime.Today;
+
+        var existingObservations = (await Get(stationId, today, today.AddDays(1), token)).ToList();
+
+        var result = await weatherHttpClient.FetchCurrentDayWeatherDataAsync(stationId);
+
+        if (result is null)
+            return false;
+
+        var notIncludedObservations = GetNotIncludedObservations(existingObservations, result.Observations);
+
+        if (notIncludedObservations.Count == 0)
+            return false;
 
         var models = ObservationParser.Parse(notIncludedObservations);
 
@@ -142,5 +163,14 @@ public class ObservationService(IWeatherHttpClient weatherHttpClient, IObservati
             MaxWind = new StatisticDTO(maxWind.MaxWind, maxWind.StationId, maxWind.MaxWindTime),
             TotalPrecipitation = new StatisticDTO(totalPrecip.TotalPrecipitation, totalPrecip.StationId, totalPrecip.TotalPrecipitationTime),
         };
+    }
+
+    private static List<WeatherObservationDTO> GetNotIncludedObservations(List<WeatherObservationDTO> existingObservations, List<WeatherObservationDTO> observations)
+    {
+        return observations
+            .Where(x => x.ObsTimeLocal is not null &&
+                !existingObservations
+                    .Any(ex => DateTime.Parse(ex.ObsTimeLocal!) == DateTime.Parse(x.ObsTimeLocal)))
+            .ToList();
     }
 }
