@@ -94,6 +94,11 @@ public class ObservationEFRepository(ObservationDbContext context) : IObservatio
             .ToListAsync(token);
     }
 
+    public Task<IEnumerable<StationStatisticDTO>> GetStatistics(DateTime initialDate, DateTime finalDate, string timePeriod, string stationId, CancellationToken token = default)
+    {
+        throw new NotImplementedException();
+    }
+
     public Task<IEnumerable<StationStatisticDTO>> GetWeekStatistics(DateTime initialDate, CancellationToken token = default)
     {
         throw new NotImplementedException();

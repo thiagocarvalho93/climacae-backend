@@ -1,0 +1,8 @@
+-- 420 bytes por linha
+-- 288 linhas por estação / dia
+-- 120.960 bytes/dia para uma estação
+-- 44.150.400 bytes/ano (44MB) para uma estação
+-- 18 estações
+-- 5184 linhas/dia
+-- 2.177.280 bytes/dia = 2.2 MB/dia
+-- 794,7072 MB/ano total

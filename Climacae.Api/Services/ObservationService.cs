@@ -96,23 +96,29 @@ public class ObservationService(IWeatherHttpClient weatherHttpClient, IObservati
         return true;
     }
 
-    public async Task<StatisticResponseDTO?> GetDailyStatistics(DateTime date, CancellationToken token = default)
+    public async Task<StatisticResponseDTO?> GetDailyStatistics(DateTime date, string stationId, CancellationToken token = default)
     {
-        var stationStatistics = await repository.GetDailyStatistics(date.Date, token);
+        var finalDate = date.AddDays(1);
+        var stationStatistics = await repository.GetStatistics(date.Date, finalDate.Date, "1 day", stationId, token);
 
         return GetOverallStatistics(stationStatistics);
     }
 
-    public async Task<StatisticResponseDTO?> GetMonthStatistics(DateTime initialDate, CancellationToken token = default)
+    public async Task<StatisticResponseDTO?> GetMonthStatistics(DateTime initialDate, string stationId, CancellationToken token = default)
     {
-        var stationStatistics = await repository.GetMonthStatistics(initialDate.Date, token);
+        var finalDate = initialDate.AddMonths(1).Date;
+        var stationStatistics = await repository.GetStatistics(initialDate.Date, finalDate, "1 month", stationId, token);
 
         return GetOverallStatistics(stationStatistics);
     }
 
-    public async Task<StatisticResponseDTO?> GetWeekStatistics(DateTime initialDate, CancellationToken token = default)
+    public async Task<StatisticResponseDTO?> GetWeekStatistics(DateTime initialDate, string stationId, CancellationToken token = default)
     {
-        var stationStatistics = await repository.GetWeekStatistics(initialDate.Date, token);
+        var finalDate = initialDate.AddDays(7) > DateTime.Now ? DateTime.Now : initialDate.AddDays(7);
+
+        System.Console.WriteLine(initialDate);
+        System.Console.WriteLine(finalDate);
+        var stationStatistics = await repository.GetStatistics(initialDate.Date, finalDate, "1 week", stationId, token);
 
         return GetOverallStatistics(stationStatistics);
     }
@@ -148,20 +154,20 @@ public class ObservationService(IWeatherHttpClient weatherHttpClient, IObservati
 
     private static StatisticResponseDTO GetOverallStatistics(IEnumerable<StationStatisticDTO> stationStatistics)
     {
-        var maxPrecip = stationStatistics.OrderByDescending(g => g.MaxPrecipitation).First();
-        var maxTemp = stationStatistics.OrderByDescending(g => g.MaxTemp).First();
-        var minTemp = stationStatistics.OrderBy(g => g.MinTemp).First();
-        var maxWind = stationStatistics.OrderByDescending(g => g.MaxWind).First();
-        var totalPrecip = stationStatistics.OrderByDescending(g => g.TotalPrecipitation).First();
+        var maxPrecip = stationStatistics?.OrderByDescending(g => g.MaxPrecipitation).FirstOrDefault();
+        var maxTemp = stationStatistics?.OrderByDescending(g => g.MaxTemp).FirstOrDefault();
+        var minTemp = stationStatistics?.OrderBy(g => g.MinTemp).FirstOrDefault();
+        var maxWind = stationStatistics?.OrderByDescending(g => g.MaxWind).FirstOrDefault();
+        var totalPrecip = stationStatistics?.OrderByDescending(g => g.TotalPrecipitation).FirstOrDefault();
 
         return new()
         {
-            Stations = stationStatistics.ToList(),
-            MaxPrecipitation = new StatisticDTO(maxPrecip.MaxPrecipitation, maxPrecip.StationId, maxPrecip.MaxPrecipitationTime),
-            MaxTemp = new StatisticDTO(maxTemp.MaxTemp, maxTemp.StationId, maxTemp.MaxTempTime),
-            MinTemp = new StatisticDTO(minTemp.MinTemp, minTemp.StationId, minTemp.MinTempTime),
-            MaxWind = new StatisticDTO(maxWind.MaxWind, maxWind.StationId, maxWind.MaxWindTime),
-            TotalPrecipitation = new StatisticDTO(totalPrecip.TotalPrecipitation, totalPrecip.StationId, totalPrecip.TotalPrecipitationTime),
+            Stations = stationStatistics?.ToList() ?? [],
+            MaxPrecipitation = new StatisticDTO(maxPrecip?.MaxPrecipitation, maxPrecip?.StationId, maxPrecip?.MaxPrecipitationTime),
+            MaxTemp = new StatisticDTO(maxTemp?.MaxTemp, maxTemp?.StationId, maxTemp?.MaxTempTime),
+            MinTemp = new StatisticDTO(minTemp?.MinTemp, minTemp?.StationId, minTemp?.MinTempTime),
+            MaxWind = new StatisticDTO(maxWind?.MaxWind, maxWind?.StationId, maxWind?.MaxWindTime),
+            TotalPrecipitation = new StatisticDTO(totalPrecip?.TotalPrecipitation, totalPrecip?.StationId, totalPrecip?.TotalPrecipitationTime),
         };
     }
 
