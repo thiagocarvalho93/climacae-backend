@@ -9,19 +9,19 @@ public static class ObservationEndpoint
     {
         var observations = routes.MapGroup("/observations");
 
-        observations.MapGet("all", async ([FromServices] IObservationService service, CancellationToken token) =>
-        {
-            var observations = await service.Get(token);
+        // observations.MapGet("all", async ([FromServices] IObservationService service, CancellationToken token) =>
+        // {
+        //     var observations = await service.Get(token);
 
-            return Results.Ok(observations);
-        });
+        //     return Results.Ok(observations);
+        // });
 
-        observations.MapGet("stations", async ([FromServices] IObservationService service, CancellationToken token) =>
-        {
-            var observations = await service.GetStations(token);
+        // observations.MapGet("stations", async ([FromServices] IObservationService service, CancellationToken token) =>
+        // {
+        //     var observations = await service.GetStations(token);
 
-            return Results.Ok(observations);
-        });
+        //     return Results.Ok(observations);
+        // });
 
         observations.MapGet("today", async ([FromQuery] string stationId, [FromServices] IObservationService service, CancellationToken token) =>
         {
@@ -33,8 +33,8 @@ public static class ObservationEndpoint
 
         observations.MapGet("statistics/today", async ([FromServices] IObservationService service, CancellationToken token) =>
         {
-            var initialDate = DateTime.Now.Date;
-            var observations = await service.GetDailyStatistics(initialDate.Date, token);
+            var today = DateTime.Now.Date;
+            var observations = await service.GetDailyStatistics(today, token);
 
             return Results.Ok(observations);
         });
@@ -47,18 +47,21 @@ public static class ObservationEndpoint
             return Results.Ok(observations);
         });
 
-        observations.MapGet("statistics/last-week", async ([FromServices] IObservationService service, CancellationToken token) =>
+        observations.MapGet("statistics/week", async ([FromServices] IObservationService service, CancellationToken token) =>
         {
-            var initialDate = DateTime.Now.Date;
-            var observations = await service.GetStatistics(initialDate.AddDays(-6).Date, initialDate.AddDays(1).Date, token);
+            var monday = DateTime.Today.AddDays(-(int)DateTime.Today.DayOfWeek + (int)DayOfWeek.Monday);
+
+            var observations = await service.GetWeekStatistics(monday.Date, token);
 
             return Results.Ok(observations);
         });
 
-        observations.MapGet("statistics/last-month", async ([FromServices] IObservationService service, CancellationToken token) =>
+        observations.MapGet("statistics/month", async ([FromServices] IObservationService service, CancellationToken token) =>
         {
-            var initialDate = DateTime.Now.Date;
-            var observations = await service.GetStatistics(initialDate.AddDays(-29).Date, initialDate.AddDays(1).Date, token);
+            var today = DateTime.Now.Date;
+            var firstDayOfMonth = new DateTime(today.Year, today.Month, 1);
+
+            var observations = await service.GetMonthStatistics(firstDayOfMonth.Date, token);
 
             return Results.Ok(observations);
         });

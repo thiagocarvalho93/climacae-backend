@@ -82,6 +82,20 @@ public class ObservationService(IWeatherHttpClient weatherHttpClient, IObservati
         return GetOverallStatistics(stationStatistics);
     }
 
+    public async Task<StatisticResponseDTO?> GetMonthStatistics(DateTime initialDate, CancellationToken token = default)
+    {
+        var stationStatistics = await repository.GetMonthStatistics(initialDate.Date, token);
+
+        return GetOverallStatistics(stationStatistics);
+    }
+
+    public async Task<StatisticResponseDTO?> GetWeekStatistics(DateTime initialDate, CancellationToken token = default)
+    {
+        var stationStatistics = await repository.GetWeekStatistics(initialDate.Date, token);
+
+        return GetOverallStatistics(stationStatistics);
+    }
+
     public async Task<StatisticResponseDTO?> GetStatistics(DateTime initialDate, DateTime finalDate, CancellationToken token = default)
     {
         var stationStatistics = await repository.GetStatistics(initialDate, finalDate, token);

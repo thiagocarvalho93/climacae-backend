@@ -42,6 +42,11 @@ public class ObservationEFRepository(ObservationDbContext context) : IObservatio
         throw new NotImplementedException();
     }
 
+    public Task<IEnumerable<StationStatisticDTO>> GetMonthStatistics(DateTime initialDate, CancellationToken token = default)
+    {
+        throw new NotImplementedException();
+    }
+
     public async Task<string[]> GetStations(CancellationToken token = default)
     {
         return await context.Observations
@@ -87,6 +92,11 @@ public class ObservationEFRepository(ObservationDbContext context) : IObservatio
                     .FirstOrDefault(),
             })
             .ToListAsync(token);
+    }
+
+    public Task<IEnumerable<StationStatisticDTO>> GetWeekStatistics(DateTime initialDate, CancellationToken token = default)
+    {
+        throw new NotImplementedException();
     }
 
     public async Task Insert(ObservationModel observation, CancellationToken token = default)

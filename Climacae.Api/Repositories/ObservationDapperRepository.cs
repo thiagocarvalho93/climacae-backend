@@ -84,10 +84,15 @@ public class ObservationDapperRepository(string _connectionString) : IObservatio
                     time_bucket('1 day', obstimelocal) AS Date,
                     stationid AS StationId,
                     max(temphigh) AS MaxTemp,
+                    last(obstimelocal, tempHigh) AS MaxTempTime,
                     min(templow) AS MinTemp,
+                    first(obstimelocal, tempLow) AS MinTempTime,
                     max(PrecipitationRate) AS MaxPrecipitation,
+                    last(obstimelocal, PrecipitationRate) AS maxPrecipitationTime,
                     max(PrecipitationTotal) AS TotalPrecipitation,
-                    max(windgusthigh) AS MaxWind
+                    last(obstimelocal, precipitationTotal) AS TotalPrecipitationTime,
+                    max(windgusthigh) AS MaxWind,
+                    last(obstimelocal, windgusthigh) AS maxwindtime
                 FROM observations
                 WHERE obstimelocal >= @Day
                 AND obstimelocal <= @Day + INTERVAL '1 day'
@@ -96,6 +101,66 @@ public class ObservationDapperRepository(string _connectionString) : IObservatio
 
         var parameters = new DynamicParameters();
         parameters.Add("Day", day);
+
+        using IDbConnection connection = new NpgsqlConnection(_connectionString);
+
+        return await connection.QueryAsync<StationStatisticDTO>(sql.ToString(), parameters);
+    }
+
+    public async Task<IEnumerable<StationStatisticDTO>> GetMonthStatistics(DateTime initialDate, CancellationToken token = default)
+    {
+        var sql = @"
+                SELECT
+                    time_bucket('1 month', obstimelocal) AS Date,
+                    stationid AS StationId,
+                    max(temphigh) AS MaxTemp,
+                    last(obstimelocal, tempHigh) AS MaxTempTime,
+                    min(templow) AS MinTemp,
+                    first(obstimelocal, tempLow) AS MinTempTime,
+                    max(PrecipitationRate) AS MaxPrecipitation,
+                    last(obstimelocal, PrecipitationRate) AS maxPrecipitationTime,
+                    max(PrecipitationTotal) AS TotalPrecipitation,
+                    last(obstimelocal, precipitationTotal) AS TotalPrecipitationTime,
+                    max(windgusthigh) AS MaxWind,
+                    last(obstimelocal, windgusthigh) AS maxwindtime
+                FROM observations
+                WHERE obstimelocal >= @InitialDate
+                AND obstimelocal <= @InitialDate + INTERVAL '1 month'
+                GROUP BY Date, stationid
+                ORDER BY Date, stationid";
+
+        var parameters = new DynamicParameters();
+        parameters.Add("InitialDate", initialDate);
+
+        using IDbConnection connection = new NpgsqlConnection(_connectionString);
+
+        return await connection.QueryAsync<StationStatisticDTO>(sql.ToString(), parameters);
+    }
+
+    public async Task<IEnumerable<StationStatisticDTO>> GetWeekStatistics(DateTime initialDate, CancellationToken token = default)
+    {
+        var sql = @"
+                SELECT
+                    time_bucket('1 week', obstimelocal) AS Date,
+                    stationid AS StationId,
+                    max(temphigh) AS MaxTemp,
+                    last(obstimelocal, tempHigh) AS MaxTempTime,
+                    min(templow) AS MinTemp,
+                    first(obstimelocal, tempLow) AS MinTempTime,
+                    max(PrecipitationRate) AS MaxPrecipitation,
+                    last(obstimelocal, PrecipitationRate) AS maxPrecipitationTime,
+                    max(PrecipitationTotal) AS TotalPrecipitation,
+                    last(obstimelocal, precipitationTotal) AS TotalPrecipitationTime,
+                    max(windgusthigh) AS MaxWind,
+                    last(obstimelocal, windgusthigh) AS maxwindtime
+                FROM observations
+                WHERE obstimelocal >= @InitialDate
+                AND obstimelocal <= @InitialDate + INTERVAL '1 week'
+                GROUP BY Date, stationid
+                ORDER BY Date, stationid";
+
+        var parameters = new DynamicParameters();
+        parameters.Add("InitialDate", initialDate);
 
         using IDbConnection connection = new NpgsqlConnection(_connectionString);
 
@@ -114,10 +179,15 @@ public class ObservationDapperRepository(string _connectionString) : IObservatio
                     time_bucket('1 day', obstimelocal) AS Date,
                     stationid AS StationId,
                     max(temphigh) AS MaxTemp,
+                    last(obstimelocal, tempHigh) AS MaxTempTime,
                     min(templow) AS MinTemp,
+                    first(obstimelocal, tempLow) AS MinTempTime,
                     max(PrecipitationRate) AS MaxPrecipitation,
+                    last(obstimelocal, PrecipitationRate) AS maxPrecipitationTime,
                     max(PrecipitationTotal) AS TotalPrecipitation,
-                    max(windgusthigh) AS MaxWind
+                    last(obstimelocal, precipitationTotal) AS TotalPrecipitationTime,
+                    max(windgusthigh) AS MaxWind,
+                    last(obstimelocal, windgusthigh) AS maxwindtime
                 FROM observations
                 WHERE obstimelocal >= @InitialDate
                 AND obstimelocal <= @FinalDate
