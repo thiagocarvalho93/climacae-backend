@@ -1,4 +1,5 @@
 using Climacae.Api.DTOs;
+using Climacae.Api.Extensions;
 using Climacae.Api.Parsers;
 using Climacae.Api.Repositories.Interfaces;
 using Climacae.Api.Services.Interfaces;
@@ -25,107 +26,69 @@ public class ObservationService(IWeatherHttpClient weatherHttpClient, IObservati
     {
         var entity = await repository.Get(stationId, dateTime, token);
 
-        if (entity == null)
+        if (entity is null)
             return null;
 
         return ObservationParser.Parse(entity);
     }
 
-    public async Task<bool> Import(string stationId, DateTime initialDate, CancellationToken token = default)
+    public async Task Import(string stationId, DateTime initialDate, CancellationToken token = default)
     {
         var existingObservations = (await Get(stationId, initialDate.Date, DateTime.Now.AddDays(1).Date, token)).ToList();
 
-        if (existingObservations.Count != 0)
-        {
-            var mostRecentDateString = existingObservations
-                .Where(x => x.ObsTimeLocal is not null)
-                .OrderByDescending(x => DateTime.Parse(x.ObsTimeLocal!))
-                .FirstOrDefault()?
-                .ObsTimeLocal;
-
-            initialDate = mostRecentDateString is null ? initialDate : DateTime.Parse(mostRecentDateString);
-        }
+        List<DateTime> dates = GetDateTimeList(ref initialDate, existingObservations);
 
         List<WeatherObservationDTO> observations = [];
-        List<DateTime> dates = GetDateTimeListSince(initialDate);
-
         foreach (var date in dates)
         {
-            var dateString = ParseStringFromDate(date);
+            var dateString = date.ParseStringFromDateWithoutSeparator();
 
             var result = await weatherHttpClient.FetchHistoricalWeatherDataAsync(stationId, dateString);
 
-            if (result is not null)
-            {
+            if (result?.Observations is not null)
                 observations.AddRange(result.Observations);
-            }
         }
 
-        var notIncludedObservations = GetNotIncludedObservations(existingObservations, observations);
-
-        if (notIncludedObservations.Count == 0)
-            return false;
-
-        var models = ObservationParser.Parse(notIncludedObservations);
-
-        await repository.Insert(models, token);
-
-        return true;
+        await InsertNotIncludedObservations(existingObservations, observations, token);
     }
 
-    public async Task<bool> ImportCurrentDay(string stationId, CancellationToken token = default)
+    public async Task ImportCurrentDay(string stationId, CancellationToken token = default)
     {
         var today = DateTime.Today;
-
         var existingObservations = (await Get(stationId, today, today.AddDays(1), token)).ToList();
 
         var result = await weatherHttpClient.FetchCurrentDayWeatherDataAsync(stationId);
 
-        if (result is null)
-            return false;
+        if (result?.Observations is null)
+            return;
 
-        var notIncludedObservations = GetNotIncludedObservations(existingObservations, result.Observations);
-
-        if (notIncludedObservations.Count == 0)
-            return false;
-
-        var models = ObservationParser.Parse(notIncludedObservations);
-
-        await repository.Insert(models, token);
-
-        return true;
+        await InsertNotIncludedObservations(existingObservations, result.Observations, token);
     }
 
     public async Task<StatisticResponseDTO?> GetDailyStatistics(DateTime date, string stationId, CancellationToken token = default)
     {
-        var finalDate = date.AddDays(1);
+        var finalDate = date.EndOfDay();
         var stationStatistics = await repository.GetStatistics(date.Date, finalDate.Date, "1 day", stationId, token);
 
         return GetOverallStatistics(stationStatistics);
     }
 
-    public async Task<StatisticResponseDTO?> GetMonthStatistics(DateTime initialDate, string stationId, CancellationToken token = default)
+    public async Task<StatisticResponseDTO?> GetMonthStatistics(DateTime date, string stationId, CancellationToken token = default)
     {
-        var finalDate = initialDate.AddMonths(1).Date;
-        var stationStatistics = await repository.GetStatistics(initialDate.Date, finalDate, "1 month", stationId, token);
+        var firstDayOfMonth = date.StartOfMonth();
+        var lastDayOfMonth = date.EndOfMonth();
+
+        var stationStatistics = await repository.GetStatistics(firstDayOfMonth.Date, lastDayOfMonth, "1 month", stationId, token);
 
         return GetOverallStatistics(stationStatistics);
     }
 
-    public async Task<StatisticResponseDTO?> GetWeekStatistics(DateTime initialDate, string stationId, CancellationToken token = default)
+    public async Task<StatisticResponseDTO?> GetWeekStatistics(DateTime date, string stationId, CancellationToken token = default)
     {
-        var finalDate = initialDate.AddDays(7) > DateTime.Now ? DateTime.Now : initialDate.AddDays(7);
+        var monday = date.StartOfWeek(DayOfWeek.Monday);
+        var sunday = date.EndOfWeek(DayOfWeek.Monday);
 
-        System.Console.WriteLine(initialDate);
-        System.Console.WriteLine(finalDate);
-        var stationStatistics = await repository.GetStatistics(initialDate.Date, finalDate, "1 week", stationId, token);
-
-        return GetOverallStatistics(stationStatistics);
-    }
-
-    public async Task<StatisticResponseDTO?> GetStatistics(DateTime initialDate, DateTime finalDate, CancellationToken token = default)
-    {
-        var stationStatistics = await repository.GetStatistics(initialDate, finalDate, token);
+        var stationStatistics = await repository.GetStatistics(monday.Date, sunday, "1 week", stationId, token);
 
         return GetOverallStatistics(stationStatistics);
     }
@@ -133,23 +96,6 @@ public class ObservationService(IWeatherHttpClient weatherHttpClient, IObservati
     public async Task<string[]> GetStations(CancellationToken token = default)
     {
         return await repository.GetStations(token);
-    }
-
-    private static List<DateTime> GetDateTimeListSince(DateTime initialDate)
-    {
-        List<DateTime> allDates = [];
-
-        for (var i = initialDate; i <= DateTime.Now; i = i.AddDays(1))
-        {
-            allDates.Add(i);
-        }
-
-        return allDates;
-    }
-
-    private static string ParseStringFromDate(DateTime date)
-    {
-        return $"{date.Year}{date.Month}{date.Day:D2}";
     }
 
     private static StatisticResponseDTO GetOverallStatistics(IEnumerable<StationStatisticDTO> stationStatistics)
@@ -178,5 +124,32 @@ public class ObservationService(IWeatherHttpClient weatherHttpClient, IObservati
                 !existingObservations
                     .Any(ex => DateTime.Parse(ex.ObsTimeLocal!) == DateTime.Parse(x.ObsTimeLocal)))
             .ToList();
+    }
+
+    private static List<DateTime> GetDateTimeList(ref DateTime initialDate, List<WeatherObservationDTO> existingObservations)
+    {
+        if (existingObservations.Count != 0)
+        {
+            var mostRecentDateString = existingObservations
+                .Where(x => x.ObsTimeLocal is not null)
+                .OrderByDescending(x => DateTime.Parse(x.ObsTimeLocal!))
+                .FirstOrDefault()?.ObsTimeLocal;
+
+            initialDate = mostRecentDateString is null ? initialDate : DateTime.Parse(mostRecentDateString);
+        }
+
+        List<DateTime> dates = initialDate.GetDateTimeListUntilToday();
+        return dates;
+    }
+
+    private async Task InsertNotIncludedObservations(List<WeatherObservationDTO> existingObservations, List<WeatherObservationDTO> observations, CancellationToken token)
+    {
+        var notIncludedObservations = GetNotIncludedObservations(existingObservations, observations);
+
+        if (notIncludedObservations.Count == 0)
+            return;
+
+        var models = ObservationParser.Parse(notIncludedObservations);
+        await repository.Insert(models, token);
     }
 }

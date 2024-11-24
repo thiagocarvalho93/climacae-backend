@@ -1,4 +1,3 @@
-using Climacae.Api.Extensions;
 using Climacae.Api.Services.Interfaces;
 using Microsoft.AspNetCore.Mvc;
 
@@ -39,6 +38,13 @@ public static class ObservationEndpoint
             return Results.Ok(observations);
         });
 
+        observations.MapGet("statistics/specific-day", async ([FromQuery] DateTime day, [FromServices] IObservationService service, CancellationToken token) =>
+        {
+            var observations = await service.GetDailyStatistics(day.Date, "", token);
+
+            return Results.Ok(observations);
+        });
+
         // observations.MapGet("statistics/last-three-days", async ([FromServices] IObservationService service, CancellationToken token) =>
         // {
         //     var initialDate = DateTime.Today;
@@ -49,19 +55,14 @@ public static class ObservationEndpoint
 
         observations.MapGet("statistics/week", async ([FromServices] IObservationService service, CancellationToken token) =>
         {
-            var monday = DateTime.Now.StartOfWeek(DayOfWeek.Monday);
-
-            var observations = await service.GetWeekStatistics(monday.Date, "", token);
+            var observations = await service.GetWeekStatistics(DateTime.Now, "", token);
 
             return Results.Ok(observations);
         });
 
         observations.MapGet("statistics/month", async ([FromServices] IObservationService service, CancellationToken token) =>
         {
-            var today = DateTime.Today;
-            var firstDayOfMonth = today.StartOfMonth();
-
-            var observations = await service.GetMonthStatistics(firstDayOfMonth.Date, "", token);
+            var observations = await service.GetMonthStatistics(DateTime.Today, "", token);
 
             return Results.Ok(observations);
         });
