@@ -1,3 +1,5 @@
+using Climacae.Api.Extensions;
+using Climacae.Api.Messages;
 using Climacae.Api.Services.Interfaces;
 using Microsoft.AspNetCore.Mvc;
 
@@ -9,63 +11,108 @@ public static class ObservationEndpoint
     {
         var observations = routes.MapGroup("/observations");
 
-        // observations.MapGet("all", async ([FromServices] IObservationService service, CancellationToken token) =>
-        // {
-        //     var observations = await service.Get(token);
-
-        //     return Results.Ok(observations);
-        // });
-
-        // observations.MapGet("stations", async ([FromServices] IObservationService service, CancellationToken token) =>
-        // {
-        //     var observations = await service.GetStations(token);
-
-        //     return Results.Ok(observations);
-        // });
-
-        observations.MapGet("today", async ([FromQuery] string stationId, [FromServices] IObservationService service, CancellationToken token) =>
+        observations.MapGet("/stations/{stationId}/daily", async ([FromRoute] string stationId, [FromQuery] string? date, [FromServices] IObservationService service, CancellationToken token) =>
         {
-            var initialDate = DateTime.Today;
-            var observations = await service.Get(stationId, initialDate, initialDate.AddDays(1), token);
+            var datetime = ParseDate(date);
 
-            return Results.Ok(observations);
+            var result = await service.Get(stationId, datetime, datetime.EndOfDay(), token);
+
+            return Results.Ok(result);
         });
 
-        observations.MapGet("statistics/today", async ([FromServices] IObservationService service, CancellationToken token) =>
+        observations.MapGet("/stations/{stationId}/weekly", async ([FromRoute] string stationId, [FromQuery] string? date, [FromServices] IObservationService service, CancellationToken token) =>
         {
-            var observations = await service.GetDailyStatistics(DateTime.Today, "", token);
+            var datetime = ParseDate(date);
 
-            return Results.Ok(observations);
+            var result = await service.Get(stationId, datetime.StartOfWeek(DayOfWeek.Monday), datetime.EndOfWeek(DayOfWeek.Monday), token);
+
+            return Results.Ok(result);
         });
 
-        observations.MapGet("statistics/specific-day", async ([FromQuery] DateTime day, [FromServices] IObservationService service, CancellationToken token) =>
+        observations.MapGet("/stations/{stationId}/monthly", async ([FromRoute] string stationId, [FromQuery] int? month, [FromQuery] int? year, [FromServices] IObservationService service, CancellationToken token) =>
         {
-            var observations = await service.GetDailyStatistics(day.Date, "", token);
+            if (!IsValidMonth(month))
+                return Results.BadRequest(new { Message = ValidationMessage.INVALID_MONTH });
 
-            return Results.Ok(observations);
+            var dateTime = new DateTime(year ?? DateTime.Now.Year, month ?? DateTime.Now.Month, 1);
+
+            // TODO: Change time granularity
+            var result = await service.Get(stationId, dateTime, dateTime.EndOfMonth(), token);
+
+            return Results.Ok(result);
         });
 
-        // observations.MapGet("statistics/last-three-days", async ([FromServices] IObservationService service, CancellationToken token) =>
+        #region Overall statistics
+        observations.MapGet("statistics/all/daily", async ([FromQuery] string? date, [FromServices] IObservationService service, CancellationToken token) =>
+        {
+            var datetime = ParseDate(date);
+
+            var result = await service.GetDailyStatistics(datetime, "", token);
+
+            return Results.Ok(result);
+        });
+
+        // observations.MapGet("statistics/all/3-days", async ([FromServices] IObservationService service, CancellationToken token) =>
         // {
         //     var initialDate = DateTime.Today;
-        //     var observations = await service.GetStatistics(initialDate.AddDays(-2).Date, initialDate.AddDays(1).Date, token);
+        //     var result = await service.GetStatistics(initialDate.AddDays(-2).Date, initialDate.AddDays(1).Date, token);
 
-        //     return Results.Ok(observations);
+        //     return Results.Ok(result);
         // });
 
-        observations.MapGet("statistics/week", async ([FromServices] IObservationService service, CancellationToken token) =>
+        observations.MapGet("statistics/all/weekly", async ([FromQuery] string? date, [FromServices] IObservationService service, CancellationToken token) =>
         {
-            var observations = await service.GetWeekStatistics(DateTime.Now, "", token);
+            var datetime = ParseDate(date);
 
-            return Results.Ok(observations);
+            var result = await service.GetWeekStatistics(datetime, "", token);
+
+            return Results.Ok(result);
         });
 
-        observations.MapGet("statistics/month", async ([FromServices] IObservationService service, CancellationToken token) =>
+        observations.MapGet("statistics/all/monthly", async ([FromQuery] int? month, [FromQuery] int? year, [FromServices] IObservationService service, CancellationToken token) =>
         {
-            var observations = await service.GetMonthStatistics(DateTime.Today, "", token);
+            if (!IsValidMonth(month))
+                return Results.BadRequest(new { Message = ValidationMessage.INVALID_MONTH });
 
-            return Results.Ok(observations);
+            var dateTime = new DateTime(year ?? DateTime.Now.Year, month ?? DateTime.Now.Month, 1);
+
+            var result = await service.GetMonthStatistics(dateTime, "", token);
+
+            return Results.Ok(result);
         });
+        #endregion
+
+        #region Statistics by station
+        observations.MapGet("statistics/stations/{stationid}/daily", async ([FromRoute] string stationId, [FromQuery] string? date, [FromServices] IObservationService service, CancellationToken token) =>
+        {
+            var datetime = ParseDate(date);
+
+            var result = await service.GetDailyStatistics(datetime, stationId, token);
+
+            return Results.Ok(result);
+        });
+
+        observations.MapGet("statistics/stations/{stationid}/weekly", async ([FromRoute] string stationId, [FromQuery] string? date, [FromServices] IObservationService service, CancellationToken token) =>
+        {
+            var datetime = ParseDate(date);
+
+            var result = await service.GetWeekStatistics(datetime, stationId, token);
+
+            return Results.Ok(result);
+        });
+
+        observations.MapGet("statistics/stations/{stationid}/monthly", async ([FromRoute] string stationId, [FromQuery] int? month, [FromQuery] int? year, [FromServices] IObservationService service, CancellationToken token) =>
+        {
+            if (!IsValidMonth(month))
+                return Results.BadRequest(new { Message = ValidationMessage.INVALID_MONTH });
+
+            var dateTime = new DateTime(year ?? DateTime.Now.Year, month ?? DateTime.Now.Month, 1);
+
+            var result = await service.GetMonthStatistics(dateTime, stationId, token);
+
+            return Results.Ok(result);
+        });
+        #endregion
 
         observations.MapPost("update-month", async ([FromQuery] string stationId, [FromServices] IObservationService service, CancellationToken token) =>
         {
@@ -73,5 +120,24 @@ public static class ObservationEndpoint
 
             await service.Import(stationId, initialDate, token);
         });
+    }
+
+    private static bool IsValidMonth(int? month)
+    {
+        if (month is not null && (month > 12 || month < 1))
+            return false;
+
+        return true;
+    }
+
+    private static DateTime ParseDate(string? date)
+    {
+        var datetime = DateTime.Today;
+        if (string.IsNullOrEmpty(date) && DateTime.TryParse(date, out var parsedDate))
+        {
+            datetime = parsedDate.Date;
+        }
+
+        return datetime;
     }
 }

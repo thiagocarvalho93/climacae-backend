@@ -68,7 +68,8 @@ public class ObservationService(IWeatherHttpClient weatherHttpClient, IObservati
     public async Task<StatisticResponseDTO?> GetDailyStatistics(DateTime date, string stationId, CancellationToken token = default)
     {
         var finalDate = date.EndOfDay();
-        var stationStatistics = await repository.GetStatistics(date.Date, finalDate.Date, "1 day", stationId, token);
+
+        var stationStatistics = await repository.GetStatistics(date.Date, finalDate, "1 day", stationId, token);
 
         return GetOverallStatistics(stationStatistics);
     }

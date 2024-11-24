@@ -23,7 +23,7 @@ public class ObservationDapperRepository(string _connectionString) : IObservatio
     private const string STATISTICS_SQL = @"
                 SELECT
                     time_bucket('{0}', obstimelocal) AS Date,
-                    stationid AS StationId,
+                    stationid,
                     max(temphigh) AS MaxTemp,
                     last(obstimelocal, tempHigh) AS MaxTempTime,
                     min(templow) AS MinTemp,
@@ -45,7 +45,7 @@ public class ObservationDapperRepository(string _connectionString) : IObservatio
     {
         const string sqlQuery = @"
                 DELETE FROM Observations
-                WHERE StationId = @StationId";
+                WHERE StationId LIKE @StationId";
 
         var parameters = new { StationId = stationId };
 
@@ -101,9 +101,9 @@ public class ObservationDapperRepository(string _connectionString) : IObservatio
     {
         var parameters = new DynamicParameters();
         parameters.Add("InitialDate", initialDate);
-        parameters.Add("finalDate", finalDate);
+        parameters.Add("FinalDate", finalDate);
 
-        var stationIdFilter = "";
+        var stationIdFilter = string.Empty;
 
         if (!string.IsNullOrEmpty(stationId))
         {
