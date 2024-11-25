@@ -116,7 +116,7 @@ public static class ObservationEndpoint
 
         observations.MapPost("update-month", async ([FromQuery] string stationId, [FromServices] IObservationService service, CancellationToken token) =>
         {
-            var initialDate = DateTime.Now.AddMonths(-1);
+            var initialDate = DateTime.Now.AddMonths(-1).Date;
 
             await service.Import(stationId, initialDate, token);
         });

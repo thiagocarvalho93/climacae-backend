@@ -9,10 +9,12 @@ public class UpdateTodayDataJob(IObservationService observationService, ILogger<
     {
         logger.LogInformation("Updating data...");
 
-        foreach (var station in StationConstants.StationList)
+        var tasks = StationConstants.StationList.Select(station =>
         {
-            await observationService.ImportCurrentDay(station);
-        }
+            return observationService.ImportCurrentDay(station);
+        });
+
+        await Task.WhenAll(tasks);
 
         logger.LogInformation("Data updated! {date}", DateTime.Now.ToString());
     }

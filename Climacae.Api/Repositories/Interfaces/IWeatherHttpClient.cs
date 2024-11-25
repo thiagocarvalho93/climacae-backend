@@ -4,6 +4,6 @@ namespace Climacae.Api.Repositories.Interfaces;
 
 public interface IWeatherHttpClient
 {
-    Task<WeatherApiResponseDTO?> FetchHistoricalWeatherDataAsync(string stationId, string date);
-    Task<WeatherApiResponseDTO?> FetchCurrentDayWeatherDataAsync(string stationId);
+    Task<WeatherApiResponseDTO?> FetchHistoricalWeatherDataAsync(string stationId, string date, CancellationToken token = default);
+    Task<WeatherApiResponseDTO?> FetchCurrentDayWeatherDataAsync(string stationId, CancellationToken token = default);
 }

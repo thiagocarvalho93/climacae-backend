@@ -36,20 +36,21 @@ public class ObservationService(IWeatherHttpClient weatherHttpClient, IObservati
     {
         var existingObservations = (await Get(stationId, initialDate.Date, DateTime.Now.AddDays(1).Date, token)).ToList();
 
-        List<DateTime> dates = GetDateTimeList(ref initialDate, existingObservations);
+        var dates = GetDateTimeList(ref initialDate, existingObservations);
 
-        List<WeatherObservationDTO> observations = [];
         foreach (var date in dates)
         {
             var dateString = date.ParseStringFromDateWithoutSeparator();
 
-            var result = await weatherHttpClient.FetchHistoricalWeatherDataAsync(stationId, dateString);
+            var result = await weatherHttpClient.FetchHistoricalWeatherDataAsync(stationId, dateString, token);
 
             if (result?.Observations is not null)
-                observations.AddRange(result.Observations);
-        }
+            {
+                await InsertNotIncludedObservations(existingObservations, result.Observations, token);
+            }
 
-        await InsertNotIncludedObservations(existingObservations, observations, token);
+            await Task.Delay(1000, token);
+        }
     }
 
     public async Task ImportCurrentDay(string stationId, CancellationToken token = default)
@@ -57,7 +58,7 @@ public class ObservationService(IWeatherHttpClient weatherHttpClient, IObservati
         var today = DateTime.Today;
         var existingObservations = (await Get(stationId, today, today.AddDays(1), token)).ToList();
 
-        var result = await weatherHttpClient.FetchCurrentDayWeatherDataAsync(stationId);
+        var result = await weatherHttpClient.FetchCurrentDayWeatherDataAsync(stationId, token);
 
         if (result?.Observations is null)
             return;
@@ -129,18 +130,17 @@ public class ObservationService(IWeatherHttpClient weatherHttpClient, IObservati
 
     private static List<DateTime> GetDateTimeList(ref DateTime initialDate, List<WeatherObservationDTO> existingObservations)
     {
-        if (existingObservations.Count != 0)
-        {
-            var mostRecentDateString = existingObservations
-                .Where(x => x.ObsTimeLocal is not null)
-                .OrderByDescending(x => DateTime.Parse(x.ObsTimeLocal!))
-                .FirstOrDefault()?.ObsTimeLocal;
-
-            initialDate = mostRecentDateString is null ? initialDate : DateTime.Parse(mostRecentDateString);
-        }
+        var existingDates = existingObservations
+            .Where(x => x.ObsTimeLocal is not null)
+            .Select(x => DateTime.Parse(x.ObsTimeLocal!).Date)
+            .Distinct();
 
         List<DateTime> dates = initialDate.GetDateTimeListUntilToday();
-        return dates;
+
+        var notIncludedDates = dates
+            .Where(x => !existingDates.Any(existing => x.Equals(existing)));
+
+        return notIncludedDates.ToList();
     }
 
     private async Task InsertNotIncludedObservations(List<WeatherObservationDTO> existingObservations, List<WeatherObservationDTO> observations, CancellationToken token)

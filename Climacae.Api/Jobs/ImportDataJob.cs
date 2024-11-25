@@ -10,7 +10,7 @@ public class ImportDataJob(IObservationService observationService, ILogger<Impor
 
         var stationIds = new List<string>() { "IMACA6", "IMACA7", "IMACA13", "IMACA15", "IMACA23", "IMACA26", "IMACA27", "IMACA28", "IMACA30", "IMACA31", "IMACA32", "IMACA36", "IMACA41", "IMACA42", "IMACA43", "IMACA46", "IMACA52", "IMACA53" };
 
-        var initialDate = DateTime.Now.AddMonths(-1).Date;
+        var initialDate = DateTime.Now.AddYears(-1).Date;
 
         try
         {
@@ -23,7 +23,7 @@ public class ImportDataJob(IObservationService observationService, ILogger<Impor
         }
         catch (Exception ex)
         {
-            logger.LogError("Failed importing data: {ex}", ex.Message);
+            logger.LogError("Failed importing data: {ex}\n{inner}", ex.Message, ex.InnerException);
         }
     }
 }

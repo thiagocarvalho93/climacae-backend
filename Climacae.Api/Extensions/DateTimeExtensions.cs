@@ -83,7 +83,7 @@ public static class DateTimeExtensions
 
         for (var i = initialDate; i <= DateTime.Now; i = i.AddDays(1))
         {
-            allDates.Add(i);
+            allDates.Add(i.Date);
         }
 
         return allDates;
@@ -97,6 +97,6 @@ public static class DateTimeExtensions
     /// <returns>A string representing the DateTime in the format "yyyyMMdd".</returns>
     public static string ParseStringFromDateWithoutSeparator(this DateTime dt)
     {
-        return $"{dt.Year}{dt.Month}{dt.Day:D2}";
+        return $"{dt.Year}{dt.Month:D2}{dt.Day:D2}";
     }
 }

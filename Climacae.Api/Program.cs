@@ -9,7 +9,7 @@ var app = builder.Build();
 
 app.RegisterMiddlewares();
 
-// BackgroundJob.Enqueue<ImportDataJob>(x => x.Execute());
+BackgroundJob.Enqueue<ImportDataJob>(x => x.Execute());
 RecurringJob.AddOrUpdate<UpdateTodayDataJob>("update-observations", (x) => x.Execute(), "*/10 * * * *");
 
 app.Run();
